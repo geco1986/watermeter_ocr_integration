@@ -1,0 +1,14 @@
+{
+  "domain": "wasserzaehler_ocr",
+  "name": "Wasserzähler OCR",
+  "version": "1.5.0",
+  "documentation": "https://github.com/DEIN-USER/wasserzaehler_ocr",
+  "issue_tracker": "https://github.com/DEIN-USER/wasserzaehler_ocr/issues",
+  "dependencies": [],
+  "codeowners": [
+    "@DEIN-USER"
+  ],
+  "requirements": [],
+  "config_flow": true,
+  "iot_class": "local_polling"
+}

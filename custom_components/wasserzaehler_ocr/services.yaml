@@ -1,0 +1,19 @@
+set_value:
+  name: Zählerstand setzen
+  description: >
+    Überschreibt den gespeicherten Zählerstand manuell. Nützlich, wenn ein
+    legitimer großer Sprung von der Plausibilitätsprüfung blockiert wird.
+    Der Zeitstempel wird auf jetzt gesetzt, der Fehlerzähler zurückgesetzt.
+  fields:
+    value:
+      name: Zählerstand
+      description: Der neue Zählerstand in m³ (z. B. 1265.500).
+      required: true
+      example: 1265.500
+      selector:
+        number:
+          min: 0
+          max: 999999
+          step: 0.001
+          mode: box
+          unit_of_measurement: "m³"

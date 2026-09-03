@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Wasserzähler OCR",
+        "description": "Verbindung zum Wasserzähler-OCR-Add-on herstellen.",
+        "data": {
+          "url": "Add-on-URL (z. B. http://192.168.3.10:5000)",
+          "scan_interval": "Abfrageintervall in Sekunden"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Add-on nicht erreichbar. URL prüfen und ob das Add-on läuft.",
+      "unknown": "Unerwarteter Fehler."
+    },
+    "abort": {
+      "already_configured": "Dieses Add-on ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Wasserzähler OCR – Einstellungen",
+        "data": {
+          "scan_interval": "Abfrageintervall in Sekunden"
+        }
+      }
+    }
+  }
+}
