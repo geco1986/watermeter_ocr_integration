@@ -1,12 +1,12 @@
 {
   "domain": "wasserzaehler_ocr",
   "name": "Wasserzähler OCR",
-  "version": "1.5.1.1",
-  "documentation": "https://github.com/DEIN-USER/wasserzaehler_ocr",
-  "issue_tracker": "https://github.com/DEIN-USER/wasserzaehler_ocr/issues",
+  "version": "1.6.0",
+  "documentation": "https://github.com/geco1986/watermeter_ocr_integration",
+  "issue_tracker": "https://github.com/geco1986/watermeter_ocr_integration/issues",
   "dependencies": [],
   "codeowners": [
-    "@DEIN-USER"
+    "@geco1986"
   ],
   "requirements": [],
   "config_flow": true,

@@ -96,7 +96,15 @@ tap_action:
     value: 1265.500
 ```
 
-## Neue Entitäten (ab 1.5.0)
+## Änderungen
+
+**1.6.0**
+
+- Marken-Icon und -Logo sind jetzt direkt in der Integration enthalten
+  (Ordner `brand/`). Ab Home Assistant 2026.3 werden sie automatisch auf der
+  Integrationsseite und der Gerätekarte angezeigt – ohne weitere Einrichtung.
+
+**1.5.0**
 
 - **Wasserzähler Stand setzen** (Number-Eingabefeld) – direkt auf der
   Gerätekarte. Trage den korrekten m³-Wert ein und bestätige; das
