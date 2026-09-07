@@ -2,11 +2,11 @@
   "config": {
     "step": {
       "user": {
-        "title": "Water Meter OCR",
-        "description": "Connect to the water meter OCR add-on.",
+        "title": "Meter OCR",
+        "description": "Connect to the OCR add-on. Individual meters are then detected automatically.",
         "data": {
           "url": "Add-on URL (e.g. http://192.168.3.10:5000)",
-          "scan_interval": "Polling interval in seconds"
+          "scan_interval": "Polling interval in seconds (default per meter)"
         }
       }
     },
@@ -21,21 +21,35 @@
   "options": {
     "step": {
       "init": {
-        "title": "Water Meter OCR settings",
+        "title": "Meter OCR settings",
+        "description": "Adjust the polling interval and override the meter type per meter if the add-on reports it incorrectly.",
         "data": {
           "scan_interval": "Polling interval in seconds"
         }
       }
     }
   },
+  "selector": {
+    "meter_type": {
+      "options": {
+        "water": "Water",
+        "electricity": "Electricity",
+        "heat": "Heat"
+      }
+    }
+  },
   "services": {
     "set_value": {
       "name": "Set meter reading",
-      "description": "Manually overrides the stored meter reading (e.g. after a legitimate large jump).",
+      "description": "Manually overrides the stored reading of a meter.",
       "fields": {
+        "meter_id": {
+          "name": "Meter ID",
+          "description": "ID of the meter (only needed with multiple meters)."
+        },
         "value": {
           "name": "Meter reading",
-          "description": "The new meter reading in m³."
+          "description": "The new reading in the base unit (m³ or kWh)."
         }
       }
     }

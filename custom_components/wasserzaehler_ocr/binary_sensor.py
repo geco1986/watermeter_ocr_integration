@@ -1,6 +1,6 @@
-"""Binary-Sensor fuer die Wasserzaehler-OCR-Integration.
+"""Binary-Sensor (Problem-Melder) pro Zaehler.
 
-Ein 'Problem'-Melder, der anschlaegt, sobald der Status nicht 'ok' ist -
+Schlaegt an, sobald der Status des letzten Ablesevorgangs nicht 'ok' ist -
 ideal fuer Benachrichtigungs-Automationen.
 """
 
@@ -13,12 +13,11 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
-from .coordinator import WasserzaehlerCoordinator
+from .const import DOMAIN, meter_device_info
+from .coordinator import MeterCoordinator
 
 
 async def async_setup_entry(
@@ -26,32 +25,41 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Binary-Sensor einrichten."""
-    coordinator: WasserzaehlerCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([WasserzaehlerProblem(coordinator, entry)])
+    """Fuer jeden Zaehler einen Problem-Melder anlegen."""
+    store = hass.data[DOMAIN][entry.entry_id]
+    entities = [
+        MeterProblem(
+            info["coordinator"],
+            entry,
+            mid,
+            info["type"],
+            info["meter"].get("name") or mid,
+        )
+        for mid, info in store["meters"].items()
+    ]
+    async_add_entities(entities)
 
 
-class WasserzaehlerProblem(CoordinatorEntity, BinarySensorEntity):
+class MeterProblem(CoordinatorEntity, BinarySensorEntity):
     """Meldet ein Problem, wenn der letzte Ablesevorgang nicht ok war."""
 
-    _attr_name = "Wasserzähler Problem"
+    _attr_has_entity_name = True
+    _attr_name = "Problem"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
         self,
-        coordinator: WasserzaehlerCoordinator,
+        coordinator: MeterCoordinator,
         entry: ConfigEntry,
+        meter_id: str,
+        mtype: str,
+        name: str,
     ) -> None:
         """Initialisieren."""
         super().__init__(coordinator)
-        self._attr_unique_id = f"{entry.entry_id}_problem"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Wasserzähler OCR",
-            manufacturer="Eigenbau",
-            model="ESP32-CAM + Ollama",
-        )
+        self._attr_unique_id = f"{entry.entry_id}_{meter_id}_problem"
+        self._attr_device_info = meter_device_info(entry.entry_id, meter_id, mtype, name)
 
     @property
     def is_on(self) -> bool | None:

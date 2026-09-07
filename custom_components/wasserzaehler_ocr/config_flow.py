@@ -1,4 +1,4 @@
-"""Config Flow fuer die Wasserzaehler-OCR-Integration."""
+"""Config- und Options-Flow fuer die Zaehler-OCR-Integration."""
 
 from __future__ import annotations
 
@@ -12,24 +12,35 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_URL
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .const import (
     CONF_SCAN_INTERVAL,
+    CONF_TYPE_OVERRIDES,
+    CONF_URL,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_URL,
     DOMAIN,
+    HEALTH_PATH,
+    QUICK_TIMEOUT,
+    TYPE_CONFIG,
+    normalize_type,
 )
 
 
 async def _test_connection(hass, base_url: str) -> str | None:
-    """Prueft, ob das Add-on erreichbar ist. Gibt Fehlercode oder None zurueck."""
+    """Prueft das Add-on. Gibt einen Fehlercode oder None (=ok) zurueck."""
     session = async_get_clientsession(hass)
-    url = f"{base_url.rstrip('/')}/health"
+    url = f"{base_url.rstrip('/')}{HEALTH_PATH}"
     try:
-        timeout = aiohttp.ClientTimeout(total=10)
+        timeout = aiohttp.ClientTimeout(total=QUICK_TIMEOUT)
         async with session.get(url, timeout=timeout) as resp:
             if resp.status != 200:
                 return "cannot_connect"
@@ -43,15 +54,28 @@ async def _test_connection(hass, base_url: str) -> str | None:
     return None
 
 
-class WasserzaehlerConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Einrichtungs-Dialog."""
+def _type_selector() -> SelectSelector:
+    """Auswahlfeld fuer den Zaehlertyp."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(value=key, label=cfg["label"])
+                for key, cfg in TYPE_CONFIG.items()
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+class ZaehlerConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Einrichtungs-Dialog: nur die Add-on-URL + Standardintervall."""
 
     VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Erster (und einziger) Schritt: URL + Intervall."""
+        """Erster Schritt: URL + Intervall."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -63,7 +87,7 @@ class WasserzaehlerConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(base_url)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title="Wasserzähler OCR",
+                    title=base_url,
                     data={
                         CONF_URL: base_url,
                         CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
@@ -84,36 +108,61 @@ class WasserzaehlerConfigFlow(ConfigFlow, domain=DOMAIN):
                 ): vol.All(vol.Coerce(int), vol.Range(min=30)),
             }
         )
-        return self.async_show_form(
-            step_id="user", data_schema=schema, errors=errors
-        )
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
     @staticmethod
     @callback
     def async_get_options_flow(entry: ConfigEntry) -> OptionsFlow:
         """Optionen-Dialog bereitstellen."""
-        return WasserzaehlerOptionsFlow()
+        return ZaehlerOptionsFlow()
 
 
-class WasserzaehlerOptionsFlow(OptionsFlow):
-    """Erlaubt das Anpassen des Abfrageintervalls nach der Einrichtung."""
+class ZaehlerOptionsFlow(OptionsFlow):
+    """Intervall global anpassen und Zaehlertyp pro Zaehler ueberschreiben."""
+
+    def __init__(self) -> None:
+        """Mapping von Schema-Schluessel -> meter_id fuer die Auswertung."""
+        self._key_to_id: dict[str, str] = {}
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Intervall anpassen."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+        """Optionen anzeigen und speichern."""
+        options = self.config_entry.options
+        current_interval = options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        current_overrides: dict = dict(options.get(CONF_TYPE_OVERRIDES, {}))
 
-        current = self.config_entry.options.get(
-            CONF_SCAN_INTERVAL,
-            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        if user_input is not None:
+            new_overrides = dict(current_overrides)
+            for key, meter_id in self._key_to_id.items():
+                if key in user_input:
+                    new_overrides[meter_id] = user_input[key]
+            return self.async_create_entry(
+                title="",
+                data={
+                    CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
+                    CONF_TYPE_OVERRIDES: new_overrides,
+                },
+            )
+
+        # Zaehler aus dem laufenden Setup lesen (falls vorhanden), sonst leer.
+        store = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        schema_dict: dict = {
+            vol.Required(
+                CONF_SCAN_INTERVAL, default=current_interval
+            ): vol.All(vol.Coerce(int), vol.Range(min=30)),
+        }
+        self._key_to_id = {}
+        if store:
+            for mid, info in store["meters"].items():
+                name = info["meter"].get("name") or mid or "Zähler"
+                key = f"Typ – {name}"
+                self._key_to_id[key] = mid
+                default_type = normalize_type(
+                    current_overrides.get(mid) or info.get("type")
+                )
+                schema_dict[vol.Required(key, default=default_type)] = _type_selector()
+
+        return self.async_show_form(
+            step_id="init", data_schema=vol.Schema(schema_dict)
         )
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_SCAN_INTERVAL, default=current
-                ): vol.All(vol.Coerce(int), vol.Range(min=30)),
-            }
-        )
-        return self.async_show_form(step_id="init", data_schema=schema)

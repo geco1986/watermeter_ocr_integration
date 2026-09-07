@@ -1,11 +1,16 @@
 # Wasserzähler OCR – Home-Assistant-Integration (Custom Component)
 
-Diese Integration bindet die Werte des **Wasserzähler-OCR-Add-ons** als native
+Diese Integration bindet die Werte des **OCR-Add-ons** als native
 Home-Assistant-Entitäten ein – ohne REST-Sensoren in der
 `configuration.yaml`. Einrichtung per Klick über die HA-Oberfläche.
 
-Voraussetzung: Das Add-on „Wasserzähler Rotate & OCR" läuft bereits und ist
-über seine URL (Port 5000) erreichbar.
+Ab Version 1.7.0 werden **mehrere Zähler pro Add-on** sowie die Typen
+**Wasser, Strom und Wärme** unterstützt. Je Zähler entsteht ein eigenes Gerät
+mit typgerechten Einheiten. Die vom Add-on erwartete HTTP-Schnittstelle ist in
+[`../../ADDON_API.md`](../../ADDON_API.md) dokumentiert.
+
+Voraussetzung: Das OCR-Add-on läuft bereits und ist über seine URL
+(Port 5000) erreichbar.
 
 ## Was sie erstellt
 
@@ -97,6 +102,18 @@ tap_action:
 ```
 
 ## Änderungen
+
+**1.7.0**
+
+- **Mehrere Zähler pro Add-on**: automatische Erkennung über den
+  `/meters`-Endpunkt; je Zähler ein eigenes Gerät mit eigenem Abfragezyklus.
+- **Zählertypen Wasser, Strom und Wärme** mit passenden Einheiten und
+  Geräteklassen (m³/L·min⁻¹, kWh/W, kWh/kW). Typ kommt vom Add-on, ist in HA
+  pro Zähler überschreibbar (unter *Konfigurieren*).
+- Dienst `set_value` akzeptiert nun `meter_id`, um einen bestimmten Zähler zu
+  adressieren.
+- Kompatibilitätsmodus: Add-ons ohne `/meters` werden weiter als Einzelzähler
+  eingebunden.
 
 **1.6.0**
 

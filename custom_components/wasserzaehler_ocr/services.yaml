@@ -1,19 +1,27 @@
 set_value:
   name: Zählerstand setzen
   description: >
-    Überschreibt den gespeicherten Zählerstand manuell. Nützlich, wenn ein
-    legitimer großer Sprung von der Plausibilitätsprüfung blockiert wird.
-    Der Zeitstempel wird auf jetzt gesetzt, der Fehlerzähler zurückgesetzt.
+    Überschreibt den gespeicherten Zählerstand eines Zählers manuell. Nützlich,
+    wenn ein legitimer großer Sprung von der Plausibilitätsprüfung blockiert
+    wird. Der Zeitstempel wird auf jetzt gesetzt, der Fehlerzähler zurückgesetzt.
   fields:
+    meter_id:
+      name: Zähler-ID
+      description: >
+        ID des Zählers (wie vom Add-on gemeldet). Nur nötig, wenn mehrere Zähler
+        eingerichtet sind. Bei genau einem Zähler kann das Feld leer bleiben.
+      required: false
+      example: "garten"
+      selector:
+        text:
     value:
       name: Zählerstand
-      description: Der neue Zählerstand in m³ (z. B. 1265.500).
+      description: Der neue Zählerstand in der Grundeinheit (m³ bzw. kWh).
       required: true
       example: 1265.500
       selector:
         number:
           min: 0
-          max: 999999
+          max: 9999999
           step: 0.001
           mode: box
-          unit_of_measurement: "m³"

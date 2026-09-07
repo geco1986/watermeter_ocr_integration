@@ -1,24 +1,25 @@
-"""Number-Entitaet zum manuellen Setzen des Zaehlerstands.
-
-Erscheint als Eingabefeld direkt auf der Geraetekarte. Beim Setzen wird der
-/set_value-Endpunkt des Add-ons aufgerufen (Zeitstempel neu, Fehlerzaehler 0).
-"""
+"""Number-Entitaet zum manuellen Setzen des Zaehlerstands (pro Zaehler)."""
 
 from __future__ import annotations
 
 import aiohttp
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_URL, UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
-from .coordinator import WasserzaehlerCoordinator
+from .const import (
+    DOMAIN,
+    QUICK_TIMEOUT,
+    SET_VALUE_PATH,
+    TYPE_CONFIG,
+    meter_device_info,
+    normalize_type,
+)
+from .coordinator import MeterCoordinator
 
 
 async def async_setup_entry(
@@ -26,37 +27,50 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Number-Entitaet einrichten."""
-    coordinator: WasserzaehlerCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([WasserzaehlerSetValue(coordinator, entry)])
+    """Fuer jeden Zaehler ein Eingabefeld anlegen."""
+    store = hass.data[DOMAIN][entry.entry_id]
+    entities = [
+        MeterSetValue(
+            info["coordinator"],
+            entry,
+            mid,
+            info["type"],
+            info["meter"].get("name") or mid,
+            store["base_url"],
+        )
+        for mid, info in store["meters"].items()
+    ]
+    async_add_entities(entities)
 
 
-class WasserzaehlerSetValue(CoordinatorEntity, NumberEntity):
+class MeterSetValue(CoordinatorEntity, NumberEntity):
     """Eingabefeld: Zaehlerstand manuell setzen."""
 
-    _attr_name = "Wasserzähler Stand setzen"
-    _attr_native_unit_of_measurement = UnitOfVolume.CUBIC_METERS
+    _attr_has_entity_name = True
+    _attr_name = "Stand setzen"
     _attr_native_min_value = 0
-    _attr_native_max_value = 999999
-    _attr_native_step = 0.001
     _attr_mode = NumberMode.BOX
     _attr_icon = "mdi:pencil"
 
     def __init__(
         self,
-        coordinator: WasserzaehlerCoordinator,
+        coordinator: MeterCoordinator,
         entry: ConfigEntry,
+        meter_id: str,
+        mtype: str,
+        name: str,
+        base_url: str,
     ) -> None:
         """Initialisieren."""
         super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_set_value"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Wasserzähler OCR",
-            manufacturer="Eigenbau",
-            model="ESP32-CAM + Ollama",
-        )
+        cfg = TYPE_CONFIG[normalize_type(mtype)]
+        self._meter_id = meter_id
+        self._base_url = base_url.rstrip("/")
+        self._attr_native_unit_of_measurement = cfg["total_unit"]
+        self._attr_native_step = cfg["set_step"]
+        self._attr_native_max_value = cfg["set_max"]
+        self._attr_unique_id = f"{entry.entry_id}_{meter_id}_set_value"
+        self._attr_device_info = meter_device_info(entry.entry_id, meter_id, mtype, name)
 
     @property
     def native_value(self) -> float | None:
@@ -67,14 +81,14 @@ class WasserzaehlerSetValue(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Neuen Zaehlerstand ans Add-on schicken."""
-        base_url = self._entry.data[CONF_URL].rstrip("/")
         session = async_get_clientsession(self.hass)
-        url = f"{base_url}/set_value"
+        url = f"{self._base_url}{SET_VALUE_PATH}"
+        payload = {"value": value}
+        if self._meter_id:
+            payload["id"] = self._meter_id
         try:
-            timeout = aiohttp.ClientTimeout(total=15)
-            async with session.post(
-                url, json={"value": value}, timeout=timeout
-            ) as resp:
+            timeout = aiohttp.ClientTimeout(total=QUICK_TIMEOUT)
+            async with session.post(url, json=payload, timeout=timeout) as resp:
                 data = await resp.json(content_type=None)
                 if resp.status != 200 or not data.get("ok"):
                     raise HomeAssistantError(
@@ -83,5 +97,4 @@ class WasserzaehlerSetValue(CoordinatorEntity, NumberEntity):
         except aiohttp.ClientError as err:
             raise HomeAssistantError(f"Add-on nicht erreichbar: {err}") from err
 
-        # Sofort neu abfragen, damit alle Sensoren den neuen Wert zeigen
         await self.coordinator.async_request_refresh()
