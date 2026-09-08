@@ -1,11 +1,11 @@
 # Zähler OCR – Home Assistant Integration
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
-[![Version](https://img.shields.io/badge/version-1.7.0-blue.svg)](https://github.com/geco1986/watermeter_ocr_integration/releases)
+[![Version](https://img.shields.io/badge/version-1.7.1-blue.svg)](https://github.com/geco1986/watermeter_ocr_integration/releases)
 
 Liest deine Zähler automatisch aus einem Kamerabild aus und stellt die Werte als
 native Home-Assistant-Entitäten bereit. Unterstützt **mehrere Zähler
-gleichzeitig** und drei Zählertypen – **Wasser, Strom und Wärme** – jeweils mit
+gleichzeitig** und vier Zählertypen – **Wasser, Strom, Wärme und Gas** – jeweils mit
 den passenden Einheiten. Alles läuft lokal in deinem Netzwerk, ganz ohne Cloud.
 
 > [!IMPORTANT]
@@ -21,6 +21,7 @@ den passenden Einheiten. Alles läuft lokal in deinem Netzwerk, ganz ohne Cloud.
 | **Wasser** | m³ | Durchfluss in L/min | Liter |
 | **Strom** | kWh | Leistung in W | kWh |
 | **Wärme** | kWh | Leistung in kW | kWh |
+| **Gas** | m³ | Durchfluss in m³/h | m³ |
 
 Der Typ wird vom Add-on gemeldet und kann in Home Assistant pro Zähler
 überschrieben werden, falls er einmal nicht passt.

@@ -34,7 +34,8 @@
       "options": {
         "water": "Water",
         "electricity": "Electricity",
-        "heat": "Heat"
+        "heat": "Heat",
+        "gas": "Gas"
       }
     }
   },

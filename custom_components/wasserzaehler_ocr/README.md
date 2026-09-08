@@ -5,7 +5,7 @@ Home-Assistant-Entitäten ein – ohne REST-Sensoren in der
 `configuration.yaml`. Einrichtung per Klick über die HA-Oberfläche.
 
 Ab Version 1.7.0 werden **mehrere Zähler pro Add-on** sowie die Typen
-**Wasser, Strom und Wärme** unterstützt. Je Zähler entsteht ein eigenes Gerät
+**Wasser, Strom, Wärme und Gas** unterstützt. Je Zähler entsteht ein eigenes Gerät
 mit typgerechten Einheiten. Die vom Add-on erwartete HTTP-Schnittstelle ist in
 [`../../ADDON_API.md`](../../ADDON_API.md) dokumentiert.
 
@@ -102,6 +102,16 @@ tap_action:
 ```
 
 ## Änderungen
+
+**1.7.1**
+
+- **Zählertyp Gas** ergänzt (Zählerstand in m³, Momentanwert als Durchfluss in
+  m³/h, Geräteklasse *Gas*). Der Typ ist – wie die anderen – pro Zähler unter
+  *Konfigurieren* überschreibbar.
+- **Veraltete Geräte werden automatisch entfernt.** Beim Start räumt die
+  Integration Geräte weg, die keinem aktuell gemeldeten Zähler mehr entsprechen
+  (z. B. das alte Einzel-Gerät früherer Versionen). Zusätzlich lassen sich
+  solche Geräte jetzt auch manuell über die HA-Oberfläche löschen.
 
 **1.7.0**
 

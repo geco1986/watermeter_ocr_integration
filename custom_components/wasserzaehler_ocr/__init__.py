@@ -16,6 +16,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers import device_registry as dr
 
 from .const import (
     CONF_SCAN_INTERVAL,
@@ -132,10 +133,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "meters": coordinators,
     }
 
+    # Veraltete Geraete aufraeumen: Alles, was diesem Eintrag zugeordnet ist,
+    # aber keinem aktuell gemeldeten Zaehler mehr entspricht (z. B. das alte
+    # Einzel-Geraet frueherer Versionen), wird aus dem Register entfernt.
+    _cleanup_stale_devices(hass, entry, coordinators)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     _async_register_services(hass)
     return True
+
+
+def _valid_identifiers(entry_id: str, meter_ids) -> set:
+    """Gueltige Geraete-Identifier fuer die aktuell gemeldeten Zaehler."""
+    return {(DOMAIN, f"{entry_id}_{mid}") for mid in meter_ids}
+
+
+def _cleanup_stale_devices(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> None:
+    """Entfernt Geraete dieses Eintrags, die zu keinem aktuellen Zaehler passen."""
+    dev_reg = dr.async_get(hass)
+    valid = _valid_identifiers(entry.entry_id, coordinators.keys())
+    for device in dr.async_entries_for_config_entry(dev_reg, entry.entry_id):
+        if not any(ident in valid for ident in device.identifiers):
+            _LOGGER.info("Entferne veraltetes Geraet '%s'", device.name_by_user or device.name)
+            dev_reg.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: ConfigEntry, device
+) -> bool:
+    """Erlaubt das manuelle Loeschen eines Geraets in der HA-Oberflaeche.
+
+    Zugelassen wird nur, was keinem aktuell gemeldeten Zaehler entspricht -
+    aktive Zaehler-Geraete lassen sich so nicht versehentlich entfernen.
+    """
+    store = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    valid = _valid_identifiers(entry.entry_id, store["meters"].keys()) if store else set()
+    return not any(ident in valid for ident in device.identifiers)
 
 
 def _async_register_services(hass: HomeAssistant) -> None:

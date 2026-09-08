@@ -42,7 +42,8 @@ QUICK_TIMEOUT = 15     # health / meters / set_value
 METER_WATER = "water"
 METER_ELECTRICITY = "electricity"
 METER_HEAT = "heat"
-METER_TYPES = [METER_WATER, METER_ELECTRICITY, METER_HEAT]
+METER_GAS = "gas"
+METER_TYPES = [METER_WATER, METER_ELECTRICITY, METER_HEAT, METER_GAS]
 
 # Pro Typ: Einheiten, Geraeteklassen, Anzeigenamen, Icons.
 TYPE_CONFIG: dict[str, dict] = {
@@ -93,6 +94,22 @@ TYPE_CONFIG: dict[str, dict] = {
         "set_step": 0.001,
         "set_max": 9999999,
         "device_icon": "mdi:radiator",
+    },
+    METER_GAS: {
+        "label": "Gas",
+        "total_unit": UnitOfVolume.CUBIC_METERS,
+        "total_device_class": SensorDeviceClass.GAS,
+        "total_icon": "mdi:meter-gas",
+        "rate_unit": UnitOfVolumeFlowRate.CUBIC_METERS_PER_HOUR,
+        "rate_device_class": SensorDeviceClass.VOLUME_FLOW_RATE,
+        "rate_name": "Durchfluss",
+        "rate_icon": "mdi:gas-burner",
+        "daily_unit": UnitOfVolume.CUBIC_METERS,
+        "daily_device_class": SensorDeviceClass.GAS,
+        "daily_factor": 1.0,
+        "set_step": 0.001,
+        "set_max": 999999,
+        "device_icon": "mdi:meter-gas",
     },
 }
 

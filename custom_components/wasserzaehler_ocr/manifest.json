@@ -1,7 +1,7 @@
 {
   "domain": "wasserzaehler_ocr",
   "name": "Wasserzähler OCR",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "documentation": "https://github.com/geco1986/watermeter_ocr_integration",
   "issue_tracker": "https://github.com/geco1986/watermeter_ocr_integration/issues",
   "dependencies": [],
